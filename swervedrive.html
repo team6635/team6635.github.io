@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Swerve Drive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <canvas id="sd" width="512" height="512"></canvas>
+    <hr>
+    X input: <input type="range" id="xinput"><span id="xval"></span><br>
+    Y input: <input type="range" id="yinput"><span id="yval"></span><br>
+    Z input: <input type="range" id="zinput"><span id="zval"></span><br>
+    <script>
+        (function(cb){
+            window.document.readyState==="complete"?cb():window.addEventListener("load", cb);
+        })(function() {
+
+const sd = document.getElementById("sd");
+const ctx = sd.getContext("2d");
+const xinput = document.getElementById("xinput");
+const yinput = document.getElementById("yinput");
+const zinput = document.getElementById("zinput");
+const xval = document.getElementById("xval");
+const yval = document.getElementById("yval");
+const zval = document.getElementById("zval");
+
+const CANVAS_H = 512;
+const CANVAS_W = 512;
+const WHEEL_H = 20;
+const WHEEL_W = 10;
+const BOT_M_X = CANVAS_W / 2;
+const BOT_M_Y = CANVAS_H / 2;
+const CHASSIS_MARGIN = 100;
+const TOLERANCE = 0;
+const FONT = "9pt monospace";
+const FONT_SIZE = 9;
+
+function clear() {
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+function drawRotatedRect(x,y,width,height,degrees,directional){
+    ctx.save();
+    ctx.beginPath();
+    ctx.translate( x+width/2, y+height/2 );
+    ctx.rotate(degrees*Math.PI/180);
+    ctx.rect( -width/2, -height/2, width,height);
+    if (directional) ctx.rect(-width + WHEEL_W / 1.5, -height - WHEEL_W / 2, WHEEL_W / 2, WHEEL_W);
+    ctx.fill();
+    ctx.restore();
+}
+
+class SwerveWheel {
+    constructor(rx, ry) {
+        this.rx = rx;
+        this.ry = ry;
+        this.uTan = [-ry, rx];
+        const magn = Math.hypot(...this.uTan);
+        this.uTan[0] /= magn;
+        this.uTan[1] /= magn;
+        this.angle = 0;
+        this.speed = 0;
+    }
+
+    draw() {
+        ctx.fillStyle = "#FF0000";
+        drawRotatedRect(BOT_M_X + this.rx - (WHEEL_W / 2), BOT_M_Y + this.ry - (WHEEL_H / 2), WHEEL_W, WHEEL_H, this.angle, this.speed !== 0);
+        ctx.font = FONT;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(`${this.angle} deg`, BOT_M_X + this.rx, BOT_M_Y + this.ry);
+        ctx.fillText(`${this.speed} power`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE * 2));
+    }
+}
+
+const wheelFL = new SwerveWheel(-90, 100);
+const wheelFR = new SwerveWheel(90, 100);
+const wheelBL = new SwerveWheel(-90, -100);
+const wheelBR = new SwerveWheel(90, -100);
+
+const wheels = [ wheelFL, wheelFR, wheelBL, wheelBR ];
+
+function getInput(inputvalue) {
+    // convert fron [0, 100] to [-50, 50]
+    let result = inputvalue - 50;
+    // convert from [-50, 50] to [-1, 1]
+    result /= 50;
+    return result;
+}
+
+setInterval(() => {
+    clear();
+    for (let wheel of wheels) {
+        wheel.draw();
+    }
+
+    const xIn = getInput(xinput.value);
+    const yIn = getInput(yinput.value);
+    const zIn = getInput(zinput.value);
+    xval.innerText = xIn;
+    yval.innerText = yIn;
+    zval.innerText = zIn;
+
+    const speeds = [];
+
+    if (Math.abs(xIn) + Math.abs(yIn) + Math.abs(zIn) <= TOLERANCE) {
+        for (let wheel of wheels) {
+            wheel.speed = 0;
+        }
+        return;
+    }
+
+    for (let i = 0; i < wheels.length; i++) {
+        let wheel = wheels[i];
+        let r = [...wheel.uTan];
+        r[0] *= zIn; r[1] *= zIn;
+        r[0] += xIn; r[1] += yIn;
+        const angle = Math.atan2(r[0], r[1]) * 180 / Math.PI;
+        const speed = Math.hypot(r[0], r[1]);
+        wheel.angle = angle;
+        speeds[i] = speed;
+    }
+
+    // TODO: normalize speeds
+
+    for (let i = 0; i < wheels.length; i++) {
+        wheels[i].speed = speeds[i];
+    }
+}, 10);
+
+        });
+    </script>
+</body>
+</html>
