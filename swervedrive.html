@@ -104,6 +104,13 @@ setInterval(() => {
     const xIn = getInput(xinput.value);
     const yIn = getInput(yinput.value);
     const zIn = getInput(zinput.value);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = FONT;
+    ctx.fillText(`X = ${xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
+    ctx.fillText(`Y = ${yIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 2));
+    ctx.fillText(`Z = ${zIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 0.5));
+
     xval.innerText = xIn;
     yval.innerText = yIn;
     zval.innerText = zIn;
