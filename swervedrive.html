@@ -75,6 +75,11 @@ class SwerveWheel {
     }
 }
 
+function normalizeAngle(raw) {
+    raw %= 360;
+    return raw < 0 ? 360 + raw : raw;
+}
+
 const wheelFL = new SwerveWheel(-90, 100);
 const wheelFR = new SwerveWheel(90, 100);
 const wheelBL = new SwerveWheel(-90, -100);
@@ -119,11 +124,14 @@ setInterval(() => {
         r[0] += xIn; r[1] += yIn;
         const angle = Math.atan2(r[0], r[1]) * 180 / Math.PI;
         const speed = Math.hypot(r[0], r[1]);
-        wheel.angle = angle;
+        wheel.angle = normalizeAngle(angle);
         speeds[i] = speed;
     }
 
-    // TODO: normalize speeds
+    const max = Math.max(...speeds.map(s => Math.abs(s)));
+    if (max > 1) {
+        speeds.forEach((v, i) => speeds[i] /= max);
+    }
 
     for (let i = 0; i < wheels.length; i++) {
         wheels[i].speed = speeds[i];
