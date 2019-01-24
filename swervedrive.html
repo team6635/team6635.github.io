@@ -8,12 +8,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
-<body>
-    <canvas id="sd" width="512" height="512"></canvas>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <div style="columns: 2;">
+    <h1>Swerve Drive Simulator</h1>
     <hr>
     X input: <input type="range" id="xinput"><span id="xval"></span><br>
     Y input: <input type="range" id="yinput"><span id="yval"></span><br>
     Z input: <input type="range" id="zinput"><span id="zval"></span><br>
+    <hr>
+    <wbr>
+    <canvas id="sd" width="512" height="512"></canvas>
+    </div>
+    <footer>
+        <hr>
+        <p>
+            
+            <strong>&copy; Copyright 2019 JaXon Falcon Works FRC 6635.</strong>
+            <br>
+            <a href="https://github.com/team6635">GitHub</a>
+        </p>
+    </footer>
     <script>
         (function (cb) {
             window.document.readyState === "complete" ? cb() : window.addEventListener("load", cb);
@@ -104,17 +118,17 @@
                     wheel.draw();
                 }
 
-                const xIn = getInput(xinput.value);
+                const xIn = -getInput(xinput.value);
                 const yIn = getInput(yinput.value);
                 const zIn = getInput(zinput.value);
 
                 ctx.fillStyle = "#ffffff";
                 ctx.font = FONT;
-                ctx.fillText(`X = ${xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
+                ctx.fillText(`X = ${-xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
                 ctx.fillText(`Y = ${yIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 2));
                 ctx.fillText(`Z = ${zIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 0.5));
 
-                xval.innerText = xIn;
+                xval.innerText = -xIn;
                 yval.innerText = yIn;
                 zval.innerText = zIn;
 
