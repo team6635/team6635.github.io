@@ -67,7 +67,7 @@ class SwerveWheel {
 
     draw() {
         ctx.fillStyle = "#FF0000";
-        drawRotatedRect(BOT_M_X + this.rx - (WHEEL_W / 2), BOT_M_Y + this.ry - (WHEEL_H / 2), WHEEL_W, WHEEL_H, this.angle, this.speed !== 0);
+        drawRotatedRect(BOT_M_X + this.rx - (WHEEL_W / 2), BOT_M_Y + this.ry - (WHEEL_H / 2), WHEEL_W, WHEEL_H, 360-this.angle, this.speed !== 0);
         ctx.font = FONT;
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText(`${this.angle} deg`, BOT_M_X + this.rx, BOT_M_Y + this.ry);
