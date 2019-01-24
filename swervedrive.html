@@ -12,19 +12,24 @@
 
 <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
     <div style="columns: 2;">
-    <h1>Swerve Drive Simulator</h1>
-    <hr>
-    X input: <input type="range" id="xinput"><span id="xval"></span><br>
-    Y input: <input type="range" id="yinput"><span id="yval"></span><br>
-    Z input: <input type="range" id="zinput"><span id="zval"></span><br>
-    <hr>
-    <wbr>
-    <canvas id="sd" width="512" height="512"></canvas>
+        <h1>Swerve Drive Simulator</h1>
+        <hr>
+        X input: <input type="range" id="xinput"><span id="xval"></span><br>
+        Y input: <input type="range" id="yinput"><span id="yval"></span><br>
+        Z input: <input type="range" id="zinput"><span id="zval"></span><br>
+        <hr>
+        Pivot Deg/S: <input type="number" id="pivotdps" value="12" max="720"><br>
+        P: <input type="number" id="pin" value="0.01"><br>
+        I: <input type="number" id="iin" value="0"><br>
+        D: <input type="number" id="din" value="2"><br>
+        <hr>
+        <wbr>
+        <canvas id="sd" width="512" height="512"></canvas>
     </div>
     <footer>
         <hr>
         <p>
-            
+
             <strong>&copy; Copyright 2019 JaXon Falcon Works FRC 6635.</strong>
             <br>
             <a href="https://github.com/team6635">GitHub</a>
@@ -43,10 +48,14 @@
             const xval = document.getElementById("xval");
             const yval = document.getElementById("yval");
             const zval = document.getElementById("zval");
+            const pivotdps = document.getElementById("pivotdps");
+            const pin = document.getElementById("pin");
+            const iin = document.getElementById("iin");
+            const din = document.getElementById("din");
 
             const CANVAS_H = 512;
             const CANVAS_W = 512;
-            const WHEEL_H = 20;
+            const WHEEL_H = 30;
             const WHEEL_W = 10;
             const BOT_M_X = CANVAS_W / 2;
             const BOT_M_Y = CANVAS_H / 2;
@@ -66,9 +75,71 @@
                 ctx.translate(x + width / 2, y + height / 2);
                 ctx.rotate(degrees * Math.PI / 180);
                 ctx.rect(-width / 2, -height / 2, width, height);
-                if (directional) ctx.rect(-width + WHEEL_W / 1.5, -height - WHEEL_W / 2, WHEEL_W / 2, WHEEL_W);
+                if (directional) {
+                    ctx.rect(0, -WHEEL_H, WHEEL_W / 2, -WHEEL_H * 2 * (Math.abs(directional)));
+                }
                 ctx.fill();
                 ctx.restore();
+            }
+
+            class JSPID {
+                constructor(fin, fout) {
+                    this.Kp = 0;
+                    this.Ki = 0;
+                    this.Kd = 0;
+                    this.setpoint = 0;
+                    this.tolerance = 0;
+                    this.nonZeroCycleCount = 0;
+                    this.lastError = 0;
+                    this.maxout = 1;
+                    this.minout = 1;
+                    this.avgout = 0;
+
+                    this.fin = fin;
+                    this.fout = fout;
+
+                    this.rate = 5;
+
+                    const T = this;
+
+                    setInterval(function () {
+                        T.runLoop.call(T);
+                    }, this.rate);
+                }
+
+                runLoop() {
+                    this.fout(this.calculate(this.fin()));
+                }
+
+                calculate(measured) {
+                    let error = this.setpoint - measured;
+                    if (error > 180) {
+                        error -= 360;
+                    } else if (error < -180) {
+                        error += 360;
+                    }
+                    if (Math.abs(error) < this.tolerance) {
+                        if (this.setpoint !== measured) this.setpoint = measured;
+                        this.nonZeroCycleCount = 0;
+                        return 0;
+                    }
+                    this.nonZeroCycleCount++;
+                    let p = this.Kp * error;
+                    let i = this.Ki * error * this.nonZeroCycleCount;
+                    let d = this.Kd * (this.lastError - error / this.rate);
+
+                    this.lastError = error;
+
+                    let result = -(p + i - d);
+                    // let out = result / this.avgout;
+                    // this.avgout = (this.avgout + result) / 2;
+                    // return out;
+                    return result;
+                }
+
+                setSetpoint(setpoint) {
+                    this.setpoint = setpoint;
+                }
             }
 
             class SwerveWheel {
@@ -81,22 +152,68 @@
                     this.uTan[1] /= magn;
                     this.angle = 0;
                     this.speed = 0;
+
+                    this.pid = new JSPID(this.pin.bind(this), this.pout.bind(this));
+                    this.pid.tolerance = 1;
+                    this.momentum = 0;
+
+                    setInterval(this.updatePhysics.bind(this), 5);
+                }
+
+                updatePhysics() {
+                    const MAX_PIVOT_SPEED = Number(pivotdps.value) /*dps*/ / (1000 / 5) /* rp5ms */;
+                    let delta = MAX_PIVOT_SPEED * this.momentum;
+                    if (Math.abs(delta) > MAX_PIVOT_SPEED) delta = Math.sign(delta) * MAX_PIVOT_SPEED;
+                    this.angle = this.angle + delta % 360;
                 }
 
                 draw() {
+                    this.angle = normalizeAngle(this.angle);
                     ctx.fillStyle = "#FF0000";
                     drawRotatedRect(BOT_M_X + this.rx - (WHEEL_W / 2), BOT_M_Y + this.ry - (WHEEL_H / 2),
-                        WHEEL_W, WHEEL_H, 360 - this.angle, this.speed !== 0);
+                        WHEEL_W, WHEEL_H, 360 - this.angle, this.speed);
                     ctx.font = FONT;
                     ctx.fillStyle = "#FFFFFF";
-                    ctx.fillText(`${this.angle} deg`, BOT_M_X + this.rx, BOT_M_Y + this.ry);
-                    ctx.fillText(`${this.speed} power`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE * 2));
+                    ctx.fillText(`angle ${this.angle}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE));
+                    ctx.fillText(`power ${this.speed}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE * 2));
+                    ctx.fillText(`setpoint ${this.pid.setpoint}`, BOT_M_X + this.rx,
+                        BOT_M_Y + this.ry - (FONT_SIZE * 3));
+                    // ctx.fillText(`momentum ${this.momentum}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE *
+                    //     4));
+                    // ctx.fillText(`pidresult ${this.lastpidresult}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE * 5));
+                }
+
+                pin() {
+                    this.pid.Kp = pin.value;
+                    this.pid.Ki = iin.value;
+                    this.pid.Kd = din.value;
+                    return normalizeAngle(this.angle);
+                }
+
+                pout(pidresult) {
+                    pidresult = correctSpeed(pidresult);
+                    this.lastpidresult = pidresult;
+                    this.angle = normalizeAngle(this.angle);
+                    const MIN_INPUT = 0.001;
+                    this.momentum = (this.momentum + pidresult) / 2;
+                    // if (Math.abs(this.momentum) > 1) {
+                    //     this.momentum = Math.sign(this.momentum);
+                    // }
+                    if (Math.abs(this.momentum) < MIN_INPUT) {
+                        this.momentum = 0;
+                    }
                 }
             }
 
             function normalizeAngle(raw) {
                 raw %= 360;
-                return raw < 0 ? 360 + raw : raw;
+                let res = raw < 0 ? 360 + raw : raw;
+
+                return res - (res % 0.25);
+            }
+
+            function correctSpeed(raw, n = 4) {
+                return Math.round(raw * Math.pow(10, n)) / Math.pow(10, n);
             }
 
             const wheelFL = new SwerveWheel(-90, 100);
@@ -120,17 +237,17 @@
                     wheel.draw();
                 }
 
-                const xIn = -getInput(xinput.value);
+                const xIn = getInput(xinput.value);
                 const yIn = getInput(yinput.value);
                 const zIn = getInput(zinput.value);
 
                 ctx.fillStyle = "#ffffff";
                 ctx.font = FONT;
-                ctx.fillText(`X = ${-xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
+                ctx.fillText(`X = ${xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
                 ctx.fillText(`Y = ${yIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 2));
                 ctx.fillText(`Z = ${zIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 0.5));
 
-                xval.innerText = -xIn;
+                xval.innerText = xIn;
                 yval.innerText = yIn;
                 zval.innerText = zIn;
 
@@ -139,6 +256,7 @@
                 if (Math.abs(xIn) + Math.abs(yIn) + Math.abs(zIn) <= TOLERANCE) {
                     for (let wheel of wheels) {
                         wheel.speed = 0;
+                        wheel.pid.setSetpoint(wheel.angle);
                     }
                     return;
                 }
@@ -152,8 +270,9 @@
                     r[1] += yIn;
                     const angle = Math.atan2(r[0], r[1]) * 180 / Math.PI;
                     const speed = Math.hypot(r[0], r[1]);
-                    wheel.angle = normalizeAngle(angle);
-                    speeds[i] = speed;
+                    wheel.pid.setSetpoint(normalizeAngle(angle));
+                    // wheel.angle = normalizeAngle(angle);
+                    speeds[i] = correctSpeed(speed);
                 }
 
                 const max = Math.max(...speeds.map(s => Math.abs(s)));
