@@ -174,9 +174,9 @@
                         WHEEL_W, WHEEL_H, 360 - this.angle, this.speed);
                     ctx.font = FONT;
                     ctx.fillStyle = "#FFFFFF";
-                    ctx.fillText(`angle ${this.angle}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE));
-                    ctx.fillText(`power ${this.speed}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE * 2));
-                    ctx.fillText(`setpoint ${this.pid.setpoint}`, BOT_M_X + this.rx,
+                    ctx.fillText(`angle ${Math.floor(this.angle)}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE));
+                    ctx.fillText(`power ${Number(this.speed.toFixed(3))}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE * 2));
+                    ctx.fillText(`setpoint ${Math.floor(this.pid.setpoint)}`, BOT_M_X + this.rx,
                         BOT_M_Y + this.ry - (FONT_SIZE * 3));
                     // ctx.fillText(`momentum ${this.momentum}`, BOT_M_X + this.rx, BOT_M_Y + this.ry - (FONT_SIZE *
                     //     4));
@@ -207,9 +207,9 @@
 
             function normalizeAngle(raw) {
                 raw %= 360;
-                let res = raw < 0 ? 360 + raw : raw;
+                return raw < 0 ? 360 + raw : raw;
 
-                return res - (res % 0.25);
+                // return res - (res % 0.25);
             }
 
             function correctSpeed(raw, n = 4) {
@@ -237,13 +237,13 @@
                     wheel.draw();
                 }
 
-                const xIn = getInput(xinput.value);
+                const xIn = -getInput(xinput.value);
                 const yIn = getInput(yinput.value);
                 const zIn = getInput(zinput.value);
 
                 ctx.fillStyle = "#ffffff";
                 ctx.font = FONT;
-                ctx.fillText(`X = ${xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
+                ctx.fillText(`X = ${-xIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 3.5));
                 ctx.fillText(`Y = ${yIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 2));
                 ctx.fillText(`Z = ${zIn}`, WHEEL_W, CANVAS_H - (FONT_SIZE * 0.5));
 
